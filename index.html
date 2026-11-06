@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Кино вдвоём</title>
   <meta name="description" content="Смотрим фильмы вместе: синхронный просмотр, передача файла и трансляция без серверов.">
-  <meta name="theme-color" content="#f4ede3">
+  <meta name="theme-color" content="#14120f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%238a6440'/%3E%3Cpath d='M24 18l24 14-24 14z' fill='%23fff'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <header class="top">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">▶</span> Кино вдвоём</div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span> Кино вдвоём</div>
     <div class="top-status" id="topStatus" hidden>
       <span class="dot" id="statusDot"></span>
       <span id="statusText">Подключаюсь…</span>
@@ -24,7 +24,6 @@
   <main id="lobby" class="lobby">
     <div class="card lobby-card">
       <h1>Смотрим фильм вместе</h1>
-      <p class="muted">Без регистрации и серверов: видео идёт напрямую между вами.</p>
 
       <label class="field">
         <span>Как тебя зовут</span>
@@ -42,8 +41,7 @@
       <p class="error" id="lobbyError" hidden></p>
 
       <details class="settings">
-        <summary>Настройки соединения (если не подключается)</summary>
-        <p class="muted small">Обычно ничего менять не нужно. Если связь не устанавливается — у одного из провайдеров «строгий» NAT или блокировки. Тогда нужен TURN-сервер (ретранслятор). Бесплатный можно получить, например, на metered.ca. Настройки сохраняются в этом браузере — введите их у обоих.</p>
+        <summary>Настройки соединения</summary>
         <label class="field"><span>TURN адрес(а), через запятую</span>
           <input id="turnUrl" placeholder="turn:example.com:3478, turns:example.com:443?transport=tcp"></label>
         <div class="two">
@@ -53,28 +51,27 @@
         <label class="field"><span>Свой PeerJS-сервер (необязательно)</span>
           <input id="peerServer" placeholder="my-peer-server.onrender.com"></label>
         <button class="btn small" id="saveSettings">Сохранить</button>
-        <span class="muted small" id="settingsSaved" hidden>Сохранено ✓</span>
+        <span class="muted small" id="settingsSaved" hidden>Сохранено</span>
       </details>
     </div>
-    <p class="foot muted small">Лучше всего работает в Chrome, Edge или Яндекс Браузере на компьютере.</p>
   </main>
 
   <!-- КОМНАТА -->
   <main id="room" class="room" hidden>
     <div class="main-col">
       <div class="tabs" role="tablist">
-        <button role="tab" data-mode="sync" aria-selected="true"><b>Синхронно</b><small>файл есть у обоих</small></button>
-        <button role="tab" data-mode="send" aria-selected="false"><b>Передать файл</b><small>отправить фильм</small></button>
-        <button role="tab" data-mode="stream" aria-selected="false"><b>Трансляция</b><small>показать со своего ПК</small></button>
+        <button role="tab" data-mode="sync" aria-selected="true"><b>Синхронно</b></button>
+        <button role="tab" data-mode="send" aria-selected="false"><b>Передать файл</b></button>
+        <button role="tab" data-mode="stream" aria-selected="false"><b>Трансляция</b></button>
       </div>
 
       <div class="stage" id="stage">
         <video id="player" playsinline preload="auto"></video>
-        <div class="stage-empty" id="stageEmpty"><div><div class="big-icon">🎬</div><p id="stageEmptyText"></p></div></div>
-        <button class="stage-overlay" id="playOverlay" hidden>▶ Нажми, чтобы продолжить</button>
+        <div class="stage-empty" id="stageEmpty"><div><p id="stageEmptyText"></p></div></div>
+        <button class="stage-overlay" id="playOverlay" hidden>Продолжить просмотр</button>
         <video id="faceVideo" class="face" playsinline autoplay hidden></video>
         <div class="viewer-bar" id="viewerBar" hidden>
-          <button class="vb" id="vToggle" title="Пауза / воспроизведение">⏯</button>
+          <button class="vb" id="vToggle" title="Пауза / воспроизведение"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
           <button class="vb" id="vBack" title="Назад 10 секунд">−10</button>
           <button class="vb" id="vFwd" title="Вперёд 10 секунд">+10</button>
           <span class="vtime" id="vTime">0:00</span>
@@ -83,18 +80,18 @@
           <input type="range" id="vVol" min="0" max="1" step="0.01" value="1" aria-label="Громкость" class="vol">
         </div>
         <div class="stats" id="stats" hidden></div>
-        <button class="fs-btn" id="fsBtn" title="Во весь экран (вместе с чатом)">⛶</button>
+        <button class="fs-btn" id="fsBtn" title="Во весь экран"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
         <div class="toasts" id="toasts" aria-live="polite"></div>
       </div>
 
       <!-- Режим 1 -->
       <section class="panel" data-panel="sync">
         <div class="row">
-          <label class="btn file-btn">📁 Выбрать файл фильма<input type="file" id="syncFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
-          <label class="btn file-btn ghost">💬 Субтитры (.srt/.vtt)<input type="file" id="subsFile" accept=".srt,.vtt,text/vtt"></label>
+          <label class="btn file-btn">Выбрать файл<input type="file" id="syncFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
+          <label class="btn file-btn ghost">Субтитры<input type="file" id="subsFile" accept=".srt,.vtt,text/vtt"></label>
         </div>
         <form class="row url-row" id="urlForm">
-          <input id="urlInput" placeholder="…или прямая ссылка на видео (.mp4 / .webm)" inputmode="url">
+          <input id="urlInput" placeholder="Ссылка на видео" inputmode="url">
           <button class="btn" type="submit">Открыть</button>
         </form>
         <div class="offer" id="urlOffer" hidden></div>
@@ -103,13 +100,12 @@
           <div><span class="muted" id="partnerMediaLabel">У партнёра:</span> <span id="partnerMedia">ничего не выбрано</span></div>
           <div id="matchInfo" class="small"></div>
         </div>
-        <p class="muted small">Пауза, play и перемотка срабатывают у обоих. Если кто-то отстал — плеер сам подтянется. MKV со звуком AC3/DTS браузер может играть без звука — тогда лучше MP4.</p>
       </section>
 
       <!-- Режим 2 -->
       <section class="panel" data-panel="send" hidden>
         <div class="row">
-          <label class="btn primary file-btn">📤 Выбрать фильм и отправить<input type="file" id="sendFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
+          <label class="btn primary file-btn">Выбрать файл и отправить<input type="file" id="sendFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
           <button class="btn ghost" id="cancelTransfer" hidden>Отменить</button>
         </div>
         <div class="transfer" id="transfer" hidden>
@@ -117,14 +113,13 @@
           <div class="bar"><div id="trBar"></div></div>
           <div class="muted small" id="trInfo"></div>
         </div>
-        <a class="btn" id="saveReceived" hidden download>💾 Сохранить фильм на компьютер</a>
-        <p class="muted small">Файл идёт напрямую, без облаков. Когда он дойдёт, у обоих включится синхронный режим. Не закрывайте вкладку во время передачи. Скорость ограничена твоей скоростью отдачи (upload).</p>
+        <a class="btn" id="saveReceived" hidden download>Сохранить на компьютер</a>
       </section>
 
       <!-- Режим 3 -->
       <section class="panel" data-panel="stream" hidden>
         <div class="row">
-          <label class="btn primary file-btn">📡 Выбрать фильм и транслировать<input type="file" id="streamFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
+          <label class="btn primary file-btn">Выбрать файл и транслировать<input type="file" id="streamFile" accept="video/*,.mkv,.mp4,.webm,.mov,.m4v"></label>
           <button class="btn" id="streamCurrent" hidden>Транслировать открытый фильм</button>
           <button class="btn ghost" id="stopStream" hidden>Остановить</button>
         </div>
@@ -146,14 +141,12 @@
               <option value="1500">1.5 c (самый плавный)</option>
             </select></label>
         </div>
-        <p class="muted small" id="streamHint">Видео берётся прямо из плеера (не с экрана) и уходит напрямую. Качество выбирай по своей скорости отдачи: битрейт должен быть меньше неё. Внизу видео есть статистика.</p>
       </section>
     </div>
 
     <aside class="side">
       <div class="card invite" id="invite">
-        <b>Позови в комнату</b>
-        <p class="muted small">Отправь ссылку или код:</p>
+        <b>Приглашение</b>
         <div class="code" id="roomCode"></div>
         <div class="join-row">
           <input id="inviteLink" readonly>
@@ -164,12 +157,11 @@
       <div class="card call">
         <b>Звонок</b>
         <div class="row">
-          <button class="btn toggle" id="micBtn" aria-pressed="false">🎙 Микрофон</button>
-          <button class="btn toggle" id="camBtn" aria-pressed="false">📷 Камера</button>
+          <button class="btn toggle" id="micBtn" aria-pressed="false">Микрофон</button>
+          <button class="btn toggle" id="camBtn" aria-pressed="false">Камера</button>
         </div>
         <label class="field inline"><span>Громкость собеседника</span>
           <input type="range" id="voiceVol" min="0" max="1" step="0.01" value="1"></label>
-        <p class="muted small">Лучше в наушниках, чтобы звук фильма не попадал в микрофон.</p>
       </div>
 
       <div class="card chat">
@@ -177,13 +169,13 @@
         <ul class="messages" id="messages"></ul>
         <form class="join-row" id="chatForm">
           <input id="chatInput" placeholder="Сообщение…" autocomplete="off" maxlength="500">
-          <button class="btn" type="submit" aria-label="Отправить">➤</button>
+          <button class="btn" type="submit" >Отправить</button>
         </form>
       </div>
     </aside>
   </main>
 
   <script src="vendor/peerjs.min.js"></script>
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

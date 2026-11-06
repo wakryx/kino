@@ -1,5 +1,5 @@
 'use strict';
-/* Кино вдвоём — синхронный просмотр, передача файла и трансляция через WebRTC (PeerJS). */
+/* Кино вдвоём: синхронный просмотр, передача файла и трансляция через WebRTC (PeerJS). */
 
 const PREFIX = 'kino-vdvoem-v1-';
 const CHUNK = 64 * 1024;           // размер сообщения в data channel
@@ -38,6 +38,8 @@ const S = {
 };
 
 const player = $('#player');
+const ICON_PLAY = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>';
 const face = $('#faceVideo');
 
 /* ---------------- утилиты ---------------- */
@@ -112,7 +114,7 @@ function setStatus(kind, text) {
 function refreshStatus() {
   if (!S.peer || S.peer.disconnected) return setStatus('err', 'Нет связи с сервером, переподключаюсь…');
   if (partnerOnline()) return setStatus('ok', `${S.partnerName} в комнате`);
-  setStatus('', S.isHost ? 'Ждём собеседника — отправь ссылку…' : 'Подключаюсь к комнате…');
+  setStatus('', S.isHost ? 'Ждём собеседника' : 'Подключаюсь к комнате…');
 }
 
 /* ---------------- комната ---------------- */
@@ -211,7 +213,7 @@ function connectToHost() {
   S.connectTimer = setTimeout(() => {
     if (!ctrl.open) {
       try { ctrl.close(); file.close(); } catch {}
-      toast('Не получается соединиться напрямую. Если так и не выйдет — добавьте TURN-сервер в настройках соединения.', 7000);
+      toast('Не удаётся соединиться напрямую', 7000);
       scheduleReconnect();
     }
   }, 15000);
@@ -253,7 +255,7 @@ function setupFile(c) {
   c.on('close', () => {
     if (S.file === c) {
       S.file = null;
-      if (S.recv) abortRecv('Связь прервалась — передача остановлена');
+      if (S.recv) abortRecv('Связь прервалась, передача остановлена');
       if (S.send.active) S.send.cancel = true;
     }
   });
@@ -315,7 +317,7 @@ function onCtrl(m) {
     case 'hello':
       S.partnerName = (m.name || '').trim() || 'Партнёр';
       $('#partnerMediaLabel').textContent = `${S.partnerName}:`;
-      addSys(`${S.partnerName} в комнате 💞`);
+      addSys(`${S.partnerName} в комнате`);
       refreshStatus();
       break;
     case 'mode': setMode(m.mode, false); break;
@@ -340,9 +342,9 @@ setInterval(() => { if (partnerOnline()) send({ t: 'ping', ts: Date.now() }); },
 
 /* ---------------- режимы ---------------- */
 const EMPTY_TEXT = {
-  sync: 'Выберите один и тот же фильм — каждый у себя. Пауза и перемотка будут общими.',
-  send: 'Отправь фильм — когда он дойдёт, плеер включится у обоих.',
-  stream: 'Выбери фильм ниже, чтобы показать его, или подожди, пока трансляцию начнёт собеседник.',
+  sync: 'Фильм не выбран',
+  send: 'Фильм не выбран',
+  stream: 'Трансляция не запущена',
 };
 function setMode(mode, broadcast) {
   if (!EMPTY_TEXT[mode]) return;
@@ -397,8 +399,8 @@ function renderPartnerMedia() {
   mi.textContent = '';
   if (pm && pm.duration && isFinite(player.duration) && !player.srcObject) {
     const d = Math.abs(pm.duration - player.duration);
-    if (d < 3) { mi.className += ' ok-text'; mi.textContent = '✓ Фильмы совпадают — можно смотреть!'; }
-    else { mi.className += ' warn-text'; mi.textContent = `⚠ Длительность отличается на ${fmtTime(d)} — возможно, разные версии фильма`; }
+    if (d < 3) { mi.className += ' ok-text'; mi.textContent = 'Фильмы совпадают'; }
+    else { mi.className += ' warn-text'; mi.textContent = `Длительность отличается на ${fmtTime(d)}`; }
   }
 }
 function safePlay() {
@@ -419,7 +421,7 @@ player.addEventListener('loadedmetadata', () => {
 });
 player.addEventListener('error', () => {
   if (player.srcObject || !player.getAttribute('src')) return;
-  toast('Браузер не смог открыть этот файл. Попробуй MP4 (H.264/AAC) или другой браузер.', 7000);
+  toast('Не удалось открыть файл', 7000);
 });
 
 /* ---------------- синхронизация ---------------- */
@@ -496,7 +498,7 @@ $('#syncFile').addEventListener('change', (e) => {
 $('#urlForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const url = $('#urlInput').value.trim();
-  if (!/^https?:\/\//i.test(url)) { toast('Нужна ссылка, начинающаяся с http:// или https://'); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('Нужна ссылка http(s)'); return; }
   loadLocal(url, decodeURIComponent(url.split('/').pop().split('?')[0]) || url, { isUrl: true });
   send({ t: 'url', url });
 });
@@ -607,11 +609,11 @@ async function sendFile(file) {
 }
 function onFileDelivered() {
   const f = S.send.file;
-  $('#trTitle').textContent = 'Готово! Фильм у собеседника ✓';
+  $('#trTitle').textContent = 'Фильм доставлен';
   $('#trInfo').textContent = '';
   if (f) loadLocal(URL.createObjectURL(f), f.name, { file: f });
   setMode('sync', true);
-  toast('Фильм дошёл! Включайте ▶');
+  toast('Фильм доставлен');
 }
 
 async function makeSink(name, type, size) {
@@ -620,7 +622,7 @@ async function makeSink(name, type, size) {
     if (navigator.storage && navigator.storage.getDirectory) {
       const est = navigator.storage.estimate ? await navigator.storage.estimate() : null;
       if (est && est.quota && est.quota - (est.usage || 0) < size) {
-        toast('⚠ Возможно, на диске не хватит места для фильма', 6000);
+        toast('На диске может не хватить места', 6000);
       }
       const root = await navigator.storage.getDirectory();
       for await (const [n] of root.entries()) { try { await root.removeEntry(n); } catch {} }
@@ -677,19 +679,19 @@ async function endRecv() {
     const file = await r.sink.finish();
     if (S.recv !== r) return;
     S.recv = null;
-    if (r.got !== r.size) toast('⚠ Файл пришёл не полностью', 6000);
+    if (r.got !== r.size) toast('Файл пришёл не полностью', 6000);
     if (S.recvUrl) URL.revokeObjectURL(S.recvUrl);
     S.recvUrl = URL.createObjectURL(file);
     const a = $('#saveReceived');
     a.href = S.recvUrl;
     a.download = r.name;
     a.hidden = false;
-    showTransfer('Получено ✓', r.name, r.size, r.size, 0);
+    showTransfer('Получено', r.name, r.size, r.size, 0);
     $('#trInfo').textContent = 'Фильм загружен в плеер. Можно сохранить его кнопкой ниже.';
     loadLocal(S.recvUrl, r.name, { file });
     send({ t: 'file-done' });
     setMode('sync', true);
-    toast('Фильм получен! Включайте ▶');
+    toast('Фильм получен');
   } catch (e) {
     console.error(e);
     abortRecv('Не удалось сохранить файл (возможно, не хватает места)');
@@ -774,7 +776,7 @@ async function startStreaming(file) {
   try { cap = player.captureStream ? player.captureStream() : player.mozCaptureStream ? player.mozCaptureStream() : null; }
   catch (e) { console.warn(e); }
   if (!cap) {
-    toast('Этот браузер не умеет транслировать видео (или ссылка запрещает это). Используй Chrome / Edge / Яндекс Браузер и локальный файл.', 8000);
+    toast('Трансляция этого видео недоступна', 8000);
     stopStreaming(true);
     return;
   }
@@ -806,7 +808,7 @@ async function callWithStream(cap) {
   if (!pc) return;
   pc.addEventListener('connectionstatechange', () => {
     if (pc.connectionState === 'connected') applyQuality();
-    if (pc.connectionState === 'failed') toast('Трансляция: соединение не удалось. Может понадобиться TURN-сервер.', 7000);
+    if (pc.connectionState === 'failed') toast('Не удалось соединиться для трансляции', 7000);
   });
   setTimeout(applyQuality, 1500);
   startStats(pc, 'out');
@@ -890,7 +892,7 @@ function onStreamState(m) {
   $('#vTime').textContent = fmtTime(m.time);
   $('#vDur').textContent = fmtTime(m.duration);
   if (!seekDragging && streamDur) $('#vSeek').value = Math.round((m.time / streamDur) * 1000);
-  $('#vToggle').textContent = m.paused ? '▶' : '⏸';
+  $('#vToggle').innerHTML = m.paused ? ICON_PLAY : ICON_PAUSE;
 }
 $('#vToggle').addEventListener('click', () => send({ t: 'remote', a: 'toggle' }));
 $('#vBack').addEventListener('click', () => send({ t: 'remote', a: 'seek', d: -10 }));
@@ -934,11 +936,11 @@ function startStats(pc, dir) {
       if (pct > 0.1) parts.push(`потери ${pct.toFixed(1)}%`);
     }
     if (dir === 'out' && v.qualityLimitationReason && v.qualityLimitationReason !== 'none') {
-      parts.push(v.qualityLimitationReason === 'bandwidth' ? '⚠ упирается в скорость интернета' : v.qualityLimitationReason === 'cpu' ? '⚠ упирается в процессор' : v.qualityLimitationReason);
+      parts.push(v.qualityLimitationReason === 'bandwidth' ? 'упирается в скорость интернета' : v.qualityLimitationReason === 'cpu' ? 'упирается в процессор' : v.qualityLimitationReason);
     }
     const pi = await pairInfo(pc);
     if (pi && pi.relay) parts.push('через TURN');
-    box.textContent = (dir === 'in' ? '📥 ' : '📡 ') + parts.join(' · ');
+    box.textContent = parts.join(' · ');
     prev = { bytes, ts: v.timestamp, lost: v.packetsLost || 0, recv: v.packetsReceived || 0 };
   }, 1000);
 }
@@ -1054,7 +1056,7 @@ $('#copyLink').addEventListener('click', async () => {
   const inp = $('#inviteLink');
   try { await navigator.clipboard.writeText(inp.value); }
   catch { inp.select(); document.execCommand('copy'); }
-  $('#copyLink').textContent = 'Скопировано ✓';
+  $('#copyLink').textContent = 'Скопировано';
   setTimeout(() => ($('#copyLink').textContent = 'Копировать'), 2000);
 });
 
